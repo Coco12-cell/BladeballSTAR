@@ -1,0 +1,486 @@
+-- Vionyx Skin Changer
+-- Mobile-friendly, optimized version
+-- Fixed UI, animation and sound VFX issues
+
+-- Disable print for performance
+print = function(...) end
+
+-- References
+local p = game:GetService("Players").LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+local swords = require(rs:WaitForChild("Shared", 9e9):WaitForChild("ReplicatedInstances", 9e9):WaitForChild("Swords", 9e9))
+local ctrl, playFx, lastParry = nil, nil, 0
+
+-- Create our custom UI that's mobile-friendly
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VionixSkinChanger"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Make sure we can place it in the right location
+local success, result = pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+    return true
+end)
+
+if not success then
+    -- Fallback if CoreGui fails
+    ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Main draggable frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Round the corners
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Title bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+-- Round the title bar corners
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = TitleBar
+
+-- Fix the bottom corners of title bar
+local BottomFrame = Instance.new("Frame")
+BottomFrame.Size = UDim2.new(1, 0, 0.5, 0)
+BottomFrame.Position = UDim2.new(0, 0, 0.5, 0)
+BottomFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+BottomFrame.BorderSizePixel = 0
+BottomFrame.Parent = TitleBar
+
+-- Title text
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -40, 1, 0)
+TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "Vionyx Skin Changer"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 18
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TitleBar
+
+-- Close button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 16
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
+
+-- Round the close button
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 15)
+CloseCorner.Parent = CloseButton
+
+-- Content frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "Content"
+ContentFrame.Size = UDim2.new(1, -20, 1, -60)
+ContentFrame.Position = UDim2.new(0, 10, 0, 50)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- Sword input label
+local SwordLabel = Instance.new("TextLabel")
+SwordLabel.Size = UDim2.new(1, 0, 0, 30)
+SwordLabel.Position = UDim2.new(0, 0, 0, 10)
+SwordLabel.BackgroundTransparency = 1
+SwordLabel.Text = "Enter Sword Name:"
+SwordLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SwordLabel.TextSize = 16
+SwordLabel.Font = Enum.Font.Gotham
+SwordLabel.TextXAlignment = Enum.TextXAlignment.Left
+SwordLabel.Parent = ContentFrame
+
+-- Sword input box
+local SwordInput = Instance.new("TextBox")
+SwordInput.Size = UDim2.new(1, 0, 0, 40)
+SwordInput.Position = UDim2.new(0, 0, 0, 40)
+SwordInput.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+SwordInput.Text = ""
+SwordInput.PlaceholderText = "Type sword name here..."
+SwordInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SwordInput.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+SwordInput.TextSize = 14
+SwordInput.Font = Enum.Font.Gotham
+SwordInput.Parent = ContentFrame
+SwordInput.ClearTextOnFocus = false
+
+-- Round the input box
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 8)
+InputCorner.Parent = SwordInput
+
+-- Status label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0, 0, 0, 90)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Waiting for input"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = ContentFrame
+
+-- Toggle button
+local ToggleFrame = Instance.new("Frame")
+ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
+ToggleFrame.Position = UDim2.new(0, 0, 0, 130)
+ToggleFrame.BackgroundTransparency = 1
+ToggleFrame.Parent = ContentFrame
+
+local ToggleLabel = Instance.new("TextLabel")
+ToggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+ToggleLabel.BackgroundTransparency = 1
+ToggleLabel.Text = "Enable Skin Changer"
+ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleLabel.TextSize = 15
+ToggleLabel.Font = Enum.Font.Gotham
+ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+ToggleLabel.Parent = ToggleFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 40, 0, 20)
+ToggleButton.Position = UDim2.new(1, -40, 0.5, -10)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.Text = ""
+ToggleButton.Parent = ToggleFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleButton
+
+local ToggleCircle = Instance.new("Frame")
+ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
+ToggleCircle.Position = UDim2.new(0, 2, 0.5, -8)
+ToggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ToggleCircle.Parent = ToggleButton
+
+local ToggleCircleCorner = Instance.new("UICorner")
+ToggleCircleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCircleCorner.Parent = ToggleCircle
+
+-- Apply button
+local ApplyButton = Instance.new("TextButton")
+ApplyButton.Size = UDim2.new(1, 0, 0, 50)
+ApplyButton.Position = UDim2.new(0, 0, 0, 180)
+ApplyButton.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+ApplyButton.Text = "APPLY SKIN"
+ApplyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ApplyButton.TextSize = 18
+ApplyButton.Font = Enum.Font.GothamBold
+ApplyButton.Parent = ContentFrame
+
+local ApplyCorner = Instance.new("UICorner")
+ApplyCorner.CornerRadius = UDim.new(0, 8)
+ApplyCorner.Parent = ApplyButton
+
+-- Footer
+local Footer = Instance.new("TextLabel")
+Footer.Size = UDim2.new(1, 0, 0, 20)
+Footer.Position = UDim2.new(0, 0, 1, -20)
+Footer.BackgroundTransparency = 1
+Footer.Text = "Made by Vionyx"
+Footer.TextColor3 = Color3.fromRGB(150, 150, 150)
+Footer.TextSize = 12
+Footer.Font = Enum.Font.Gotham
+Footer.Parent = ContentFrame
+
+-- Circular toggle button for quick access
+local ToggleUI = Instance.new("TextButton")
+ToggleUI.Name = "ToggleUI"
+ToggleUI.Size = UDim2.new(0, 50, 0, 50)
+ToggleUI.Position = UDim2.new(0.05, 0, 0.5, 0)
+ToggleUI.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
+ToggleUI.BorderSizePixel = 0
+ToggleUI.Text = ""
+ToggleUI.Active = true
+ToggleUI.Draggable = true
+ToggleUI.Parent = ScreenGui
+
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0)
+CircleCorner.Parent = ToggleUI
+
+local CircleLabel = Instance.new("TextLabel")
+CircleLabel.Size = UDim2.new(1, 0, 1, 0)
+CircleLabel.BackgroundTransparency = 1
+CircleLabel.Text = "V"
+CircleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CircleLabel.TextSize = 24
+CircleLabel.Font = Enum.Font.GothamBold
+CircleLabel.Parent = ToggleUI
+
+-- Notification function
+local function showNotification(title, message, duration)
+    local NotifGui = Instance.new("ScreenGui")
+    NotifGui.Name = "VionixNotif"
+    
+    -- Try to parent to CoreGui, fallback to PlayerGui
+    pcall(function()
+        NotifGui.Parent = game:GetService("CoreGui")
+    end)
+    
+    if not NotifGui.Parent then
+        NotifGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    end
+    
+    local NotifFrame = Instance.new("Frame")
+    NotifFrame.Size = UDim2.new(0, 280, 0, 70)
+    NotifFrame.Position = UDim2.new(0.5, -140, 0.8, 0)
+    NotifFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    NotifFrame.BorderSizePixel = 0
+    NotifFrame.Parent = NotifGui
+    
+    local NotifCorner = Instance.new("UICorner")
+    NotifCorner.CornerRadius = UDim.new(0, 8)
+    NotifCorner.Parent = NotifFrame
+    
+    local NotifTitle = Instance.new("TextLabel")
+    NotifTitle.Size = UDim2.new(1, -10, 0, 25)
+    NotifTitle.Position = UDim2.new(0, 10, 0, 5)
+    NotifTitle.BackgroundTransparency = 1
+    NotifTitle.Text = title
+    NotifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NotifTitle.TextSize = 16
+    NotifTitle.Font = Enum.Font.GothamBold
+    NotifTitle.TextXAlignment = Enum.TextXAlignment.Left
+    NotifTitle.Parent = NotifFrame
+    
+    local NotifMsg = Instance.new("TextLabel")
+    NotifMsg.Size = UDim2.new(1, -10, 0, 35)
+    NotifMsg.Position = UDim2.new(0, 10, 0, 30)
+    NotifMsg.BackgroundTransparency = 1
+    NotifMsg.Text = message
+    NotifMsg.TextColor3 = Color3.fromRGB(200, 200, 200)
+    NotifMsg.TextSize = 14
+    NotifMsg.Font = Enum.Font.Gotham
+    NotifMsg.TextXAlignment = Enum.TextXAlignment.Left
+    NotifMsg.TextWrapped = true
+    NotifMsg.Parent = NotifFrame
+    
+    -- Animate in
+    NotifFrame.Position = UDim2.new(0.5, -140, 1, 10)
+    local tweenService = game:GetService("TweenService")
+    tweenService:Create(
+        NotifFrame,
+        TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Position = UDim2.new(0.5, -140, 0.8, 0)}
+    ):Play()
+    
+    -- Remove after duration
+    task.delay(duration or 3, function()
+        tweenService:Create(
+            NotifFrame,
+            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            {Position = UDim2.new(0.5, -140, 1, 10)}
+        ):Play()
+        
+        task.wait(0.6)
+        NotifGui:Destroy()
+    end)
+end
+
+-- Core Sword Functionality (from message.txt)
+local function getSlash(name)
+    local s = swords:GetSword(name)
+    return (s and s.SlashName) or "SlashEffect"
+end
+
+getgenv().config = getgenv().config or {}
+getgenv().config.slash = getSlash(getgenv().config.FX or "")
+
+local function setSword()
+    if not getgenv().config.enabled then return end
+    
+    -- Try to set up value for EquipSwordTo
+    pcall(function()
+        setupvalue(rawget(swords, "EquipSwordTo"), 2, false)
+    end)
+    
+    -- Try to equip the sword
+    pcall(function()
+        swords:EquipSwordTo(p.Character, getgenv().config.ModelWeapon)
+    end)
+    
+    -- Set animation if controller exists
+    if ctrl and getgenv().config.Animation then
+        pcall(function()
+            ctrl:SetSword(getgenv().config.Animation)
+        end)
+    end
+    
+    StatusLabel.Text = "Status: Sword applied!"
+end
+
+getgenv().updateSword = function()
+    getgenv().config.slash = getSlash(getgenv().config.FX)
+    setSword()
+end
+
+-- Find controller
+task.spawn(function()
+    while task.wait() and not ctrl do
+        for _, v in getconnections(rs.Remotes.FireSwordInfo.OnClientEvent) do
+            if v.Function and islclosure(v.Function) then
+                local u = getupvalues(v.Function)
+                if #u == 1 and type(u[1]) == "table" then
+                    ctrl = u[1]
+                    break
+                end
+            end
+        end
+    end
+end)
+
+-- Find parry connections
+task.spawn(function()
+    while task.wait() and not parryConnA do
+        for _, v in getconnections(rs.Remotes.ParrySuccessAll.OnClientEvent) do
+            if v.Function and getinfo(v.Function).name == "parrySuccessAll" then
+                parryConnA, playFx = v, v.Function
+                v:Disable()
+                break
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait() and not parryConnB do
+        for _, v in getconnections(rs.Remotes.ParrySuccessClient.Event) do
+            if v.Function and getinfo(v.Function).name == "parrySuccessAll" then
+                parryConnB = v
+                v:Disable()
+                break
+            end
+        end
+    end
+end)
+
+-- Hook parry events
+pcall(function()
+    rs.Remotes.ParrySuccessAll.OnClientEvent:Connect(function(...)
+        setthreadidentity(2)
+        local a = {...}
+        if tostring(a[4]) ~= p.Name then
+            lastParry = tick()
+        elseif getgenv().config.enabled then
+            a[1], a[3] = getgenv().config.slash, getgenv().config.FX
+        end
+        return playFx(unpack(a))
+    end)
+end)
+
+-- Continuous sword monitor
+task.spawn(function()
+    while task.wait(1) do
+        if getgenv().config.enabled then
+            local c = p.Character or p.CharacterAdded:Wait()
+            
+            -- Check if we need to apply sword
+            if p:GetAttribute("CurrentlyEquippedSword") ~= getgenv().config.ModelWeapon or not c:FindFirstChild(getgenv().config.ModelWeapon) then
+                setSword()
+            end
+            
+            -- Destroy other models
+            for _, m in pairs(c:GetChildren()) do
+                if m:IsA("Model") and m.Name ~= getgenv().config.ModelWeapon then
+                    m:Destroy()
+                end
+                task.wait()
+            end
+        end
+    end
+end)
+
+-- UI Logic
+local enabled = false
+
+-- Toggle UI visibility
+local function toggleUI()
+    MainFrame.Visible = not MainFrame.Visible
+end
+
+-- Toggle circle button
+ToggleUI.MouseButton1Click:Connect(function()
+    toggleUI()
+end)
+
+-- For mobile devices
+ToggleUI.TouchTap:Connect(function()
+    toggleUI()
+end)
+
+-- Close button
+CloseButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Update toggle appearance
+local function updateToggleVisual()
+    if enabled then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 200, 100)
+        ToggleCircle:TweenPosition(UDim2.new(0, 22, 0.5, -8), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, -8), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+    end
+end
+
+-- Toggle button handler
+ToggleButton.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    getgenv().config.enabled = enabled
+    updateToggleVisual()
+    
+    if enabled then
+        StatusLabel.Text = "Status: Enabled"
+        showNotification("Vionyx", "Skin Changer Enabled", 2)
+        if getgenv().config.ModelWeapon then
+            getgenv().updateSword()
+        end
+    else
+        StatusLabel.Text = "Status: Disabled"
+        showNotification("Vionyx", "Skin Changer Disabled", 2)
+    end
+end)
+
+-- Apply button handler
+ApplyButton.MouseButton1Click:Connect(function()
+    local swordName = SwordInput.Text
+    if swordName == "" then
+        showNotification("Error", "Please enter a sword name", 2)
+        return
+    end
+    
+    getgenv().config.ModelWeapon = swordName
+    getgenv().config.FX = swordName
+    getgenv().updateSword()
+    showNotification("Vionyx", "Applied skin: " .. swordName, 3)
+end)
+
+-- Initial notification
+showNotification("Vionyx Skin Changer", "Script loaded successfully! Drag the V button to move", 4)
